@@ -1,0 +1,11 @@
+model/raw_dataset/
+model/data/
+model/runs/
+model/weights/
+model/test_images/
+backend/parking_log.xlsx
+backend/temp_plate.jpg
+__pycache__/
+*.pyc
+yolov8s.pt
+yolo26n.pt
