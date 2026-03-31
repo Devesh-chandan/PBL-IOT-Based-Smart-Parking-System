@@ -1,20 +1,25 @@
 
+
 // import React, { useState, useEffect } from 'react';
 // import axios from 'axios';
-// import { Car, Clock, Hash } from 'lucide-react';
 
 // const API_BASE = "http://localhost:8000";
+// const TOTAL_SLOTS = 20; // Updated to 20 slots
 
 // const App = () => {
 //   const [data, setData] = useState([]);
+//   const [status, setStatus] = useState("Connecting...");
 
 //   const fetchData = async () => {
 //     try {
-//       // ?t= avoids browser caching
-//       const res = await axios.get(`${API_BASE}/parking-status?t=${Date.now()}`);
-//       setData(res.data);
+//       const rid = Math.random().toString(36).substring(7);
+//       const res = await axios.get(`${API_BASE}/parking-status?rid=${rid}`);
+//       if (Array.isArray(res.data)) {
+//         setData(res.data);
+//         setStatus("Connected to Cloud");
+//       }
 //     } catch (err) {
-//       console.error("Connection to backend failed");
+//       setStatus("Backend Offline");
 //     }
 //   };
 
@@ -24,127 +29,104 @@
 //     return () => clearInterval(interval);
 //   }, []);
 
-//   return (
-//     <div className="min-h-screen bg-[#0f172a] text-white p-10 font-sans">
-//       <h1 className="text-3xl font-black text-blue-500 mb-10 tracking-tight italic">
-//         PARK<span className="text-white not-italic">SENSE</span> DASHBOARD
-//       </h1>
+//   // --- SLOT LOGIC ---
+//   const getParkingLayout = () => {
+//     // 1. Create an empty layout of 20 slots
+//     let slots = Array(TOTAL_SLOTS).fill(null);
 
-//       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-//         {data.map((item, index) => (
-//           <div key={index} className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
-//             <div className="flex justify-between items-start mb-4">
-//               <div className="bg-blue-500/10 p-3 rounded-2xl text-blue-500">
-//                 <Car size={24} />
-//               </div>
-//               <div className="flex items-center gap-1 text-slate-500 font-mono text-xs font-bold">
-//                 <Hash size={12}/> {item.ID}
-//               </div>
-//             </div>
+//     // 2. Identify currently parked cars
+//     const latestStatusMap = {};
+//     data.forEach(record => {
+//       const plate = record['Plate Number'] || record['PlateNumber'];
+//       if (plate && plate !== "-") {
+//         latestStatusMap[plate] = record;
+//       }
+//     });
 
-//             {/* MATCHED TO YOUR EXCEL: 'Plate Number' */}
-//             <h2 className="text-2xl font-mono font-bold tracking-tighter mb-4">
-//               {item['Plate Number']}
-//             </h2>
+//     // 3. Filter only those that are currently "ENTERED"
+//     const activeCars = Object.values(latestStatusMap).filter(
+//       car => car.Status === 'ENTERED'
+//     );
 
-//             <div className="space-y-2 border-t border-slate-800 pt-4">
-//               <div className="flex justify-between text-[10px] uppercase tracking-widest font-bold">
-//                 <span className="text-slate-500">Status</span>
-//                 <span className={item.Status === 'EXITED' ? 'text-rose-500' : 'text-teal-400'}>
-//                   {item.Status}
-//                 </span>
-//               </div>
-              
-//               <div className="flex justify-between text-[10px] uppercase tracking-widest font-bold">
-//                 <span className="text-slate-500 font-mono">Entry</span>
-//                 <span className="text-slate-300">{item['Entry Time']}</span>
-//               </div>
-//             </div>
-//           </div>
-//         ))}
-//       </div>
-//     </div>
-//   );
-// };
+//     // 4. Assign cars to slots
+//     activeCars.forEach((car, index) => {
+//       // Use the slot number from the sheet, or auto-assign based on index
+//       const assignedSlot = parseInt(car.Slot) || (index + 1); 
+//       if (assignedSlot <= TOTAL_SLOTS) {
+//         slots[assignedSlot - 1] = car;
+//       }
+//     });
 
-// export default App;
-
-
-
-// import React, { useState, useEffect } from 'react';
-// import axios from 'axios';
-// import { Car, RefreshCcw, Database } from 'lucide-react';
-
-// const API_BASE = "http://localhost:8000";
-
-// const App = () => {
-//   const [data, setData] = useState([]);
-//   const [isSyncing, setIsSyncing] = useState(false);
-
-//   const fetchData = async () => {
-//     setIsSyncing(true);
-//     try {
-//       // The 'v' parameter ensures the browser NEVER uses a cached version
-//       const res = await axios.get(`${API_BASE}/parking-status?v=${Date.now()}`);
-//       setData(res.data);
-//     } catch (err) {
-//       console.error("Sync failed");
-//     }
-//     setTimeout(() => setIsSyncing(false), 500);
+//     return slots;
 //   };
 
-//   useEffect(() => {
-//     fetchData();
-//     const interval = setInterval(fetchData, 3000); // Check every 3 seconds
-//     return () => clearInterval(interval);
-//   }, []);
+//   const parkingSlots = getParkingLayout();
+//   const occupiedCount = parkingSlots.filter(s => s !== null).length;
 
 //   return (
-//     <div className="min-h-screen bg-[#020617] text-slate-200 p-6">
-//       <div className="max-w-5xl mx-auto">
-//         <div className="flex justify-between items-center mb-10 bg-slate-900/50 p-6 rounded-3xl border border-slate-800">
+//     <div className="min-h-screen bg-[#020617] text-white p-6 md:p-12 font-sans">
+//       <div className="max-w-7xl mx-auto flex justify-between items-center mb-10">
+//         <h1 className="text-3xl font-black text-blue-500 italic tracking-tighter">SMART PARK LIVE</h1>
+//         <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 px-4 py-2 rounded-2xl">
+//           <div className={`w-2 h-2 rounded-full ${status === "Connected to Cloud" ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+//           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{status}</span>
+//         </div>
+//       </div>
+
+//       <div className="max-w-7xl mx-auto mb-16">
+//         <div className="flex justify-between items-end mb-6">
 //           <div>
-//             <h1 className="text-2xl font-black text-blue-500 italic">PARKSENSE <span className="text-white not-italic font-light">PRO</span></h1>
-//             <p className="text-[10px] text-slate-500 font-mono tracking-widest mt-1">CONNECTED TO: {API_BASE}</p>
+//             <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Live Floor Map</h2>
+//             <p className="text-2xl font-black">Capacity: {TOTAL_SLOTS} Units</p>
 //           </div>
-//           <button 
-//             onClick={fetchData}
-//             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl text-xs font-bold transition-all"
-//           >
-//             <RefreshCcw size={14} className={isSyncing ? "animate-spin" : ""} />
-//             {isSyncing ? "SYNCING..." : "FORCE RELOAD"}
-//           </button>
+//           <div className="text-right">
+//             <span className="text-4xl font-black text-blue-500">{TOTAL_SLOTS - occupiedCount}</span>
+//             <span className="text-slate-500 font-bold ml-2">/ {TOTAL_SLOTS} FREE</span>
+//           </div>
 //         </div>
 
-//         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-//           {data.map((item, index) => (
-//             <div key={index} className="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] hover:border-slate-700 transition-all group">
-//               <div className="flex justify-between items-center mb-6">
-//                 <div className="p-3 bg-slate-800 rounded-2xl group-hover:bg-blue-500/10 group-hover:text-blue-500 transition-all">
-//                   <Car size={24} />
+//         {/* Visual Grid - Changed to lg:grid-cols-5 for better 20-slot layout */}
+//         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 bg-slate-900/30 p-6 rounded-[2.5rem] border border-slate-800">
+//           {parkingSlots.map((car, i) => (
+//             <div 
+//               key={i} 
+//               className={`h-40 rounded-3xl border-2 flex flex-col items-center justify-center transition-all duration-500 ${
+//                 car 
+//                 ? 'border-red-500/50 bg-red-500/10 shadow-[0_0_20px_rgba(239,68,68,0.1)]' 
+//                 : 'border-emerald-500/20 bg-emerald-500/5'
+//               }`}
+//             >
+//               <span className="text-[10px] font-bold text-slate-600 mb-2 uppercase">Slot {i + 1}</span>
+//               {car ? (
+//                 <div className="text-center">
+//                   <div className="w-10 h-5 bg-red-500 rounded-md mx-auto mb-1 animate-pulse"></div>
+//                   <div className="text-[9px] font-black text-red-500 mb-1 tracking-widest">OCCUPIED</div>
+//                   <div className="text-[11px] font-mono font-bold text-white bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
+//                     {car['Plate Number']}
+//                   </div>
 //                 </div>
-//                 <div className="text-[10px] font-mono text-slate-500 bg-slate-950 px-3 py-1 rounded-full border border-slate-800">
-//                   ID: {item.ID}
-//                 </div>
-//               </div>
+//               ) : (
+//                 <div className="text-emerald-500 font-black text-sm italic opacity-20 tracking-widest uppercase">Vacant</div>
+//               )}
+//             </div>
+//           ))}
+//         </div>
+//       </div>
 
-//               <div className="mb-6">
-//                 <p className="text-slate-500 text-[10px] uppercase font-bold tracking-[0.2em] mb-1">Plate Number</p>
-//                 <h2 className="text-3xl font-mono font-bold tracking-tight text-white">{item['Plate Number']}</h2>
-//               </div>
-
-//               <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-800">
+//       {/* History Log */}
+//       <div className="max-w-7xl mx-auto">
+//         <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-6">Activity Feed (All History)</h2>
+//         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[500px] overflow-y-auto pr-2">
+//           {data.slice().reverse().map((item, index) => (
+//             <div key={index} className="flex items-center justify-between bg-slate-900/50 border border-slate-800 p-4 rounded-2xl hover:border-slate-700 transition-all">
+//               <div className="flex items-center gap-4">
+//                 <div className={`w-2 h-2 rounded-full ${item.Status === 'ENTERED' ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' : 'bg-red-500 shadow-[0_0_8px_#ef4444]'}`}></div>
 //                 <div>
-//                   <p className="text-slate-500 text-[10px] uppercase font-bold mb-1">Status</p>
-//                   <span className={`text-xs font-bold ${item.Status === 'EXITED' ? 'text-rose-500' : 'text-teal-400 underline decoration-teal-500/30'}`}>
-//                     {item.Status}
-//                   </span>
-//                 </div>
-//                 <div className="text-right">
-//                   <p className="text-slate-500 text-[10px] uppercase font-bold mb-1">Entry Time</p>
-//                   <p className="text-xs font-mono text-slate-300">{item['Entry Time']}</p>
+//                   <p className="text-xs font-bold">{item['Plate Number'] || "---"}</p>
+//                   <p className="text-[10px] text-slate-500">{item.Status} @ {item['Entry Time']}</p>
 //                 </div>
 //               </div>
+//               <span className="text-[10px] font-mono text-slate-600">SLOT {item.Slot || "N/A"}</span>
 //             </div>
 //           ))}
 //         </div>
@@ -156,138 +138,211 @@
 // export default App;
 
 
-// import React, { useState, useEffect } from 'react';
-// import axios from 'axios';
 
-// const API_BASE = "http://localhost:8000";
-
-// const App = () => {
-//   const [data, setData] = useState([]);
-
-//   const fetchData = async () => {
-//     try {
-//       // 'rid' (Random ID) is the key to forcing the browser to update
-//       const rid = Math.random().toString(36).substring(7);
-//       const res = await axios.get(`${API_BASE}/parking-status?rid=${rid}`);
-      
-//       console.log("New data received:", res.data); // Check your browser console (F12)
-//       setData(res.data);
-//     } catch (err) {
-//       console.error("Fetch failed");
-//     }
-//   };
-
-//   useEffect(() => {
-//     fetchData();
-//     const interval = setInterval(fetchData, 2000); // Fast 2-second update
-//     return () => clearInterval(interval);
-//   }, []);
-
-//   return (
-//     <div className="min-h-screen bg-[#020617] text-white p-10">
-//       <h1 className="text-2xl font-bold text-blue-500 mb-8 italic">PARKSENSE LIVE</h1>
-      
-//       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-//         {data.map((item, index) => (
-//           <div key={index} className="bg-slate-900 border border-slate-800 p-6 rounded-3xl">
-//             <div className="text-xs text-slate-500 font-mono mb-2">ID: {item.ID}</div>
-            
-//             {/* THIS IS THE TEXT YOU ARE EDITING IN EXCEL */}
-//             <div className="text-3xl font-bold font-mono text-teal-400">
-//                 {item['Plate Number']}
-//             </div>
-            
-//             <div className="mt-4 pt-4 border-t border-slate-800 flex justify-between items-center">
-//               <span className="text-[10px] uppercase font-black text-slate-400">Status</span>
-//               <span className="text-xs font-bold text-white">{item.Status}</span>
-//             </div>
-//           </div>
-//         ))}
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default App;
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { 
+  Activity, 
+  Car, 
+  CheckCircle2, 
+  Clock, 
+  LayoutDashboard, 
+  MapPin, 
+  ShieldCheck, 
+  Wifi, 
+  WifiOff 
+} from 'lucide-react'; // Optional: npm install lucide-react
 
 const API_BASE = "http://localhost:8000";
+const TOTAL_SLOTS = 20;
 
 const App = () => {
   const [data, setData] = useState([]);
-  const [status, setStatus] = useState("Connecting...");
+  const [status, setStatus] = useState("Connecting");
 
   const fetchData = async () => {
     try {
-      // rid prevents the browser from showing 'old' cached data
       const rid = Math.random().toString(36).substring(7);
       const res = await axios.get(`${API_BASE}/parking-status?rid=${rid}`);
-      
       if (Array.isArray(res.data)) {
         setData(res.data);
-        setStatus("Connected to Cloud");
-      } else {
-        // If the backend sends an error object instead of a list
-        setStatus("Error: Invalid Data Format");
+        setStatus("Connected");
       }
     } catch (err) {
-      setStatus("Backend Offline");
+      setStatus("Offline");
     }
   };
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 2000); 
+    const interval = setInterval(fetchData, 2000);
     return () => clearInterval(interval);
   }, []);
 
+  const getParkingLayout = () => {
+    let slots = Array(TOTAL_SLOTS).fill(null);
+    const latestStatusMap = {};
+    data.forEach(record => {
+      const plate = record['Plate Number'] || record['PlateNumber'];
+      if (plate && plate !== "-") latestStatusMap[plate] = record;
+    });
+
+    const activeCars = Object.values(latestStatusMap).filter(car => car.Status === 'ENTERED');
+
+    activeCars.forEach((car, index) => {
+      const assignedSlot = parseInt(car.Slot) || (index + 1);
+      if (assignedSlot <= TOTAL_SLOTS) {
+        slots[assignedSlot - 1] = car;
+      }
+    });
+    return slots;
+  };
+
+  const parkingSlots = getParkingLayout();
+  const occupiedCount = parkingSlots.filter(s => s !== null).length;
+  const freeSlots = TOTAL_SLOTS - occupiedCount;
+  const occupancyRate = ((occupiedCount / TOTAL_SLOTS) * 100).toFixed(0);
+
   return (
-    <div className="min-h-screen bg-[#020617] text-white p-6 md:p-12">
-      <div className="max-w-6xl mx-auto flex justify-between items-center mb-10">
-        <h1 className="text-3xl font-black text-blue-500 italic">PARKSENSE LIVE</h1>
-        <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 px-4 py-2 rounded-2xl">
-          <div className={`w-2 h-2 rounded-full ${status === "Connected to Cloud" ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{status}</span>
+    <div className="min-h-screen bg-[#020617] text-slate-200 p-4 md:p-8 font-sans selection:bg-blue-500/30">
+      {/* HEADER */}
+      <header className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+           
+            <h1 className="text-2xl font-black tracking-tight text-white italic uppercase">
+            <span className="text-blue-500">Smart-Park</span> Pro
+            </h1>
+          </div>
+          
         </div>
-      </div>
 
-      {data.length === 0 ? (
-        <div className="text-center p-20 border-2 border-dashed border-slate-800 rounded-3xl text-slate-600">
-          Waiting for Google Sheets data...
+        <div className="flex items-center gap-4">
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-full border bg-slate-900/50 backdrop-blur-sm ${
+            status === "Connected" ? 'border-emerald-500/20 text-emerald-400' : 'border-red-500/20 text-red-400'
+          }`}>
+            {status === "Connected" ? <Wifi size={14} /> : <WifiOff size={14} />}
+            <span className="text-[10px] font-bold uppercase tracking-widest">{status}</span>
+          </div>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {data.map((item, index) => (
-            <div key={index} className="bg-slate-900/50 border border-slate-800 p-8 rounded-[2.5rem] hover:border-blue-500/50 transition-all shadow-2xl">
-              <div className="flex justify-between items-start mb-6">
-                <span className="text-[10px] font-mono text-slate-600">ID: {item.ID || "N/A"}</span>
-                <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase border ${item.Status === 'EXITED' ? 'border-red-500/30 text-red-500' : 'border-emerald-500/30 text-emerald-500'}`}>
-                  {item.Status || "UNKNOWN"}
-                </span>
-              </div>
-              
-              <div className="mb-6">
-                <p className="text-slate-500 text-[10px] uppercase font-bold tracking-[0.2em] mb-1">Plate Number</p>
-                <h2 className="text-4xl font-mono font-black text-white tracking-tighter truncate">
-                  {/* Safety: Check for multiple common header typos */}
-                  {item['Plate Number'] || item['PlateNumber'] || item['plate'] || "---"}
-                </h2>
-              </div>
+      </header>
 
-              <div className="pt-6 border-t border-slate-800">
-                 <div className="text-left">
-                  <p className="text-slate-500 text-[10px] uppercase font-bold mb-1">Entry Time</p>
-                  <p className="text-xs font-mono text-slate-300">{item['Entry Time'] || "--:--"}</p>
+      <main className="max-w-7xl mx-auto">
+        {/* STATS OVERVIEW */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <StatCard label="Total Capacity" value={TOTAL_SLOTS} subValue="Units Available" icon={<LayoutDashboard className="text-blue-400" />} color="blue" />
+          <StatCard label="Available Spots" value={freeSlots} subValue={`${occupancyRate}% Occupancy`} icon={<CheckCircle2 className="text-emerald-400" />} color="emerald" />
+          <StatCard label="Live Vehicles" value={occupiedCount} subValue="Currently Parked" icon={<Activity className="text-orange-400" />} color="orange" />
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+          {/* MAP SECTION */}
+          <div className="xl:col-span-3">
+            <div className="bg-slate-900/40 border border-slate-800 p-6 rounded-[2rem] backdrop-blur-md">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3">
+                  <MapPin size={18} className="text-slate-500" />
+                  <h2 className="text-lg font-bold text-white">PHOENIX MARKET CITY Parking 2</h2>
+                </div>
+                <div className="flex gap-4 text-[10px] font-bold uppercase tracking-tighter">
+                  <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-emerald-500/20 border border-emerald-500/40"></div> Vacant</div>
+                  <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-red-500/20 border border-red-500/40"></div> Occupied</div>
                 </div>
               </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                {parkingSlots.map((car, i) => (
+                  <SlotItem key={i} index={i} car={car} />
+                ))}
+              </div>
             </div>
-          ))}
+          </div>
+
+          {/* HISTORY SECTION */}
+          <div className="xl:col-span-1">
+            <div className="bg-slate-900/40 border border-slate-800 p-6 rounded-[2rem] backdrop-blur-md h-full flex flex-col">
+              <div className="flex items-center gap-3 mb-6">
+                <Clock size={18} className="text-slate-500" />
+                <h2 className="text-lg font-bold text-white">Activity Log</h2>
+              </div>
+              
+              <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-grow" style={{ maxHeight: '600px' }}>
+                {data.slice().reverse().map((item, index) => (
+                  <HistoryItem key={index} item={item} />
+                ))}
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-slate-800/50 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold uppercase italic">
+                  <ShieldCheck size={12} /> Encrypted Node
+                </div>
+                <span className="text-[10px] text-slate-600 font-mono italic">v2.4.0</span>
+              </div>
+            </div>
+          </div>
         </div>
-      )}
+      </main>
     </div>
   );
 };
+
+// SUB-COMPONENTS FOR CLEANER CODE
+const StatCard = ({ label, value, subValue, icon, color }) => (
+  <div className="bg-slate-900/40 border border-slate-800 p-5 rounded-3xl backdrop-blur-md flex items-center justify-between group hover:border-slate-700 transition-all">
+    <div>
+      <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1">{label}</p>
+      <h3 className="text-3xl font-black text-white">{value}</h3>
+      <p className="text-slate-600 text-[10px] font-medium">{subValue}</p>
+    </div>
+    <div className={`p-4 bg-slate-800/50 rounded-2xl group-hover:scale-110 transition-transform`}>
+      {icon}
+    </div>
+  </div>
+);
+
+const SlotItem = ({ index, car }) => (
+  <div className={`relative group h-36 rounded-2xl border-2 flex flex-col items-center justify-center transition-all duration-500 ${
+    car 
+    ? 'border-red-500/40 bg-red-500/5 shadow-[0_0_20px_rgba(239,68,68,0.05)]' 
+    : 'border-slate-800 bg-slate-900/20 hover:border-emerald-500/30'
+  }`}>
+    <div className="absolute top-3 left-4 flex items-center gap-1.5">
+      <div className={`w-1.5 h-1.5 rounded-full ${car ? 'bg-red-500 animate-pulse' : 'bg-slate-700'}`}></div>
+      <span className="text-[9px] font-black text-slate-600 uppercase tracking-tighter">P-{index + 1}</span>
+    </div>
+
+    {car ? (
+      <div className="flex flex-col items-center">
+        <div className="mb-2 relative">
+          <Car size={24} className="text-red-500 opacity-80" />
+          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-1 bg-red-500/30 blur-sm rounded-full"></div>
+        </div>
+        <p className="text-[10px] font-black text-white bg-slate-800 px-2 py-0.5 rounded border border-slate-700 font-mono">
+          {car['Plate Number']}
+        </p>
+      </div>
+    ) : (
+      <span className="text-[10px] font-bold text-slate-700 uppercase tracking-widest group-hover:text-emerald-500/40 transition-colors">Open</span>
+    )}
+  </div>
+);
+
+const HistoryItem = ({ item }) => (
+  <div className="group bg-slate-800/20 border border-slate-800/50 p-3 rounded-xl hover:bg-slate-800/40 transition-all">
+    <div className="flex justify-between items-start mb-2">
+      <span className={`text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-tighter ${
+        item.Status === 'ENTERED' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'
+      }`}>
+        {item.Status}
+      </span>
+      <span className="text-[9px] font-mono text-slate-600 group-hover:text-slate-400 transition-colors">{item['Entry Time']}</span>
+    </div>
+    <div className="flex justify-between items-end">
+      <h4 className="text-sm font-mono font-bold text-slate-300">{item['Plate Number'] || "UNKNOWN"}</h4>
+      <span className="text-[9px] font-bold text-slate-600 italic">Slot {item.Slot || "N/A"}</span>
+    </div>
+  </div>
+);
 
 export default App;
