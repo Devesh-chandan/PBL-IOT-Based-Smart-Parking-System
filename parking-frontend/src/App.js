@@ -1,145 +1,5 @@
 
 
-// import React, { useState, useEffect } from 'react';
-// import axios from 'axios';
-
-// const API_BASE = "http://localhost:8000";
-// const TOTAL_SLOTS = 20; // Updated to 20 slots
-
-// const App = () => {
-//   const [data, setData] = useState([]);
-//   const [status, setStatus] = useState("Connecting...");
-
-//   const fetchData = async () => {
-//     try {
-//       const rid = Math.random().toString(36).substring(7);
-//       const res = await axios.get(`${API_BASE}/parking-status?rid=${rid}`);
-//       if (Array.isArray(res.data)) {
-//         setData(res.data);
-//         setStatus("Connected to Cloud");
-//       }
-//     } catch (err) {
-//       setStatus("Backend Offline");
-//     }
-//   };
-
-//   useEffect(() => {
-//     fetchData();
-//     const interval = setInterval(fetchData, 2000);
-//     return () => clearInterval(interval);
-//   }, []);
-
-//   // --- SLOT LOGIC ---
-//   const getParkingLayout = () => {
-//     // 1. Create an empty layout of 20 slots
-//     let slots = Array(TOTAL_SLOTS).fill(null);
-
-//     // 2. Identify currently parked cars
-//     const latestStatusMap = {};
-//     data.forEach(record => {
-//       const plate = record['Plate Number'] || record['PlateNumber'];
-//       if (plate && plate !== "-") {
-//         latestStatusMap[plate] = record;
-//       }
-//     });
-
-//     // 3. Filter only those that are currently "ENTERED"
-//     const activeCars = Object.values(latestStatusMap).filter(
-//       car => car.Status === 'ENTERED'
-//     );
-
-//     // 4. Assign cars to slots
-//     activeCars.forEach((car, index) => {
-//       // Use the slot number from the sheet, or auto-assign based on index
-//       const assignedSlot = parseInt(car.Slot) || (index + 1); 
-//       if (assignedSlot <= TOTAL_SLOTS) {
-//         slots[assignedSlot - 1] = car;
-//       }
-//     });
-
-//     return slots;
-//   };
-
-//   const parkingSlots = getParkingLayout();
-//   const occupiedCount = parkingSlots.filter(s => s !== null).length;
-
-//   return (
-//     <div className="min-h-screen bg-[#020617] text-white p-6 md:p-12 font-sans">
-//       <div className="max-w-7xl mx-auto flex justify-between items-center mb-10">
-//         <h1 className="text-3xl font-black text-blue-500 italic tracking-tighter">SMART PARK LIVE</h1>
-//         <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 px-4 py-2 rounded-2xl">
-//           <div className={`w-2 h-2 rounded-full ${status === "Connected to Cloud" ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-//           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{status}</span>
-//         </div>
-//       </div>
-
-//       <div className="max-w-7xl mx-auto mb-16">
-//         <div className="flex justify-between items-end mb-6">
-//           <div>
-//             <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Live Floor Map</h2>
-//             <p className="text-2xl font-black">Capacity: {TOTAL_SLOTS} Units</p>
-//           </div>
-//           <div className="text-right">
-//             <span className="text-4xl font-black text-blue-500">{TOTAL_SLOTS - occupiedCount}</span>
-//             <span className="text-slate-500 font-bold ml-2">/ {TOTAL_SLOTS} FREE</span>
-//           </div>
-//         </div>
-
-//         {/* Visual Grid - Changed to lg:grid-cols-5 for better 20-slot layout */}
-//         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 bg-slate-900/30 p-6 rounded-[2.5rem] border border-slate-800">
-//           {parkingSlots.map((car, i) => (
-//             <div 
-//               key={i} 
-//               className={`h-40 rounded-3xl border-2 flex flex-col items-center justify-center transition-all duration-500 ${
-//                 car 
-//                 ? 'border-red-500/50 bg-red-500/10 shadow-[0_0_20px_rgba(239,68,68,0.1)]' 
-//                 : 'border-emerald-500/20 bg-emerald-500/5'
-//               }`}
-//             >
-//               <span className="text-[10px] font-bold text-slate-600 mb-2 uppercase">Slot {i + 1}</span>
-//               {car ? (
-//                 <div className="text-center">
-//                   <div className="w-10 h-5 bg-red-500 rounded-md mx-auto mb-1 animate-pulse"></div>
-//                   <div className="text-[9px] font-black text-red-500 mb-1 tracking-widest">OCCUPIED</div>
-//                   <div className="text-[11px] font-mono font-bold text-white bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
-//                     {car['Plate Number']}
-//                   </div>
-//                 </div>
-//               ) : (
-//                 <div className="text-emerald-500 font-black text-sm italic opacity-20 tracking-widest uppercase">Vacant</div>
-//               )}
-//             </div>
-//           ))}
-//         </div>
-//       </div>
-
-//       {/* History Log */}
-//       <div className="max-w-7xl mx-auto">
-//         <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-6">Activity Feed (All History)</h2>
-//         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[500px] overflow-y-auto pr-2">
-//           {data.slice().reverse().map((item, index) => (
-//             <div key={index} className="flex items-center justify-between bg-slate-900/50 border border-slate-800 p-4 rounded-2xl hover:border-slate-700 transition-all">
-//               <div className="flex items-center gap-4">
-//                 <div className={`w-2 h-2 rounded-full ${item.Status === 'ENTERED' ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' : 'bg-red-500 shadow-[0_0_8px_#ef4444]'}`}></div>
-//                 <div>
-//                   <p className="text-xs font-bold">{item['Plate Number'] || "---"}</p>
-//                   <p className="text-[10px] text-slate-500">{item.Status} @ {item['Entry Time']}</p>
-//                 </div>
-//               </div>
-//               <span className="text-[10px] font-mono text-slate-600">SLOT {item.Slot || "N/A"}</span>
-//             </div>
-//           ))}
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default App;
-
-
-
-
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { 
@@ -346,3 +206,158 @@ const HistoryItem = ({ item }) => (
 );
 
 export default App;
+
+
+
+
+// import React, { useState, useEffect } from 'react';
+// import axios from 'axios';
+// import { Activity, Car, CheckCircle2, Clock, LayoutDashboard, MapPin, ShieldCheck, Wifi, WifiOff } from 'lucide-react';
+
+// const API_BASE = "http://localhost:8000";
+// const TOTAL_SLOTS = 20;
+
+// const App = () => {
+//   const [data, setData] = useState([]);
+//   const [status, setStatus] = useState("Connecting");
+
+//   const fetchData = async () => {
+//     try {
+//       // Adding a timestamp to prevent browser caching
+//       const res = await axios.get(`${API_BASE}/parking-status?t=${Date.now()}`);
+//       if (Array.isArray(res.data)) {
+//         setData(res.data);
+//         setStatus("Connected");
+//       }
+//     } catch (err) {
+//       setStatus("Offline");
+//     }
+//   };
+
+//   useEffect(() => {
+//     fetchData();
+//     const interval = setInterval(fetchData, 2000);
+//     return () => clearInterval(interval);
+//   }, []);
+
+//   const getParkingLayout = () => {
+//     let slots = Array(TOTAL_SLOTS).fill(null);
+//     const latestStatusMap = {};
+
+//     // Map each plate to its absolute latest record found in the Excel log
+//     data.forEach(record => {
+//       const plate = record['Plate Number'];
+//       if (plate && plate !== "-") {
+//         latestStatusMap[plate] = record;
+//       }
+//     });
+
+//     // Place only those that are currently "ENTERED" into their assigned slots
+//     Object.values(latestStatusMap).forEach(car => {
+//       if (car.Status === 'ENTERED') {
+//         const slotIdx = parseInt(car.Slot) - 1;
+//         if (slotIdx >= 0 && slotIdx < TOTAL_SLOTS) {
+//           slots[slotIdx] = car;
+//         }
+//       }
+//     });
+//     return slots;
+//   };
+
+//   const parkingSlots = getParkingLayout();
+//   const occupiedCount = parkingSlots.filter(s => s !== null).length;
+//   const freeSlots = TOTAL_SLOTS - occupiedCount;
+//   const occupancyRate = ((occupiedCount / TOTAL_SLOTS) * 100).toFixed(0);
+
+//   return (
+//     <div className="min-h-screen bg-[#020617] text-slate-200 p-4 md:p-8 font-sans">
+//       <header className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+//         <h1 className="text-2xl font-black text-white italic uppercase">
+//           <span className="text-blue-500">Smart-Park</span> Pro
+//         </h1>
+//         <div className={`flex items-center gap-2 px-4 py-2 rounded-full border bg-slate-900/50 ${status === "Connected" ? 'border-emerald-500/20 text-emerald-400' : 'border-red-500/20 text-red-400'}`}>
+//           {status === "Connected" ? <Wifi size={14} /> : <WifiOff size={14} />}
+//           <span className="text-[10px] font-bold uppercase tracking-widest">{status}</span>
+//         </div>
+//       </header>
+
+//       <main className="max-w-7xl mx-auto">
+//         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+//           <StatCard label="Capacity" value={TOTAL_SLOTS} subValue="Total Slots" icon={<LayoutDashboard />} color="blue" />
+//           <StatCard label="Available" value={freeSlots} subValue={`${occupancyRate}% Full`} icon={<CheckCircle2 />} color="emerald" />
+//           <StatCard label="Live" value={occupiedCount} subValue="Vehicles Parked" icon={<Activity />} color="orange" />
+//         </div>
+
+//         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+//           <div className="xl:col-span-3 bg-slate-900/40 border border-slate-800 p-6 rounded-[2rem]">
+//             <div className="flex items-center justify-between mb-8">
+//                 <div className="flex items-center gap-3">
+//                     <MapPin size={18} className="text-slate-500" />
+//                     <h2 className="text-lg font-bold text-white">Live Parking Map</h2>
+//                 </div>
+//             </div>
+//             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+//               {parkingSlots.map((car, i) => (
+//                 <SlotItem key={i} index={i} car={car} />
+//               ))}
+//             </div>
+//           </div>
+
+//           <div className="xl:col-span-1 bg-slate-900/40 border border-slate-800 p-6 rounded-[2rem] flex flex-col">
+//             <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+//               <Clock size={18} /> Activity Log
+//             </h2>
+//             <div className="space-y-3 overflow-y-auto flex-grow max-h-[500px] pr-2">
+//               {data.slice().reverse().map((item, index) => (
+//                 <HistoryItem key={index} item={item} />
+//               ))}
+//             </div>
+//           </div>
+//         </div>
+//       </main>
+//     </div>
+//   );
+// };
+
+// // Sub-components
+// const StatCard = ({ label, value, subValue, icon }) => (
+//   <div className="bg-slate-900/40 border border-slate-800 p-5 rounded-3xl flex items-center justify-between">
+//     <div>
+//       <p className="text-slate-500 text-[10px] font-bold uppercase mb-1">{label}</p>
+//       <h3 className="text-3xl font-black text-white">{value}</h3>
+//       <p className="text-slate-600 text-[10px]">{subValue}</p>
+//     </div>
+//     <div className="p-4 bg-slate-800/50 rounded-2xl text-blue-400">{icon}</div>
+//   </div>
+// );
+
+// const SlotItem = ({ index, car }) => (
+//   <div className={`relative h-32 rounded-2xl border-2 flex flex-col items-center justify-center transition-all ${car ? 'border-red-500/40 bg-red-500/5' : 'border-slate-800 bg-slate-900/20'}`}>
+//     <span className="absolute top-2 left-3 text-[9px] font-black text-slate-600">P-{index + 1}</span>
+//     {car ? (
+//       <>
+//         <Car size={24} className="text-red-500 mb-1" />
+//         <p className="text-[9px] font-mono font-bold text-white bg-slate-800 px-2 rounded">{car['Plate Number']}</p>
+//       </>
+//     ) : (
+//       <span className="text-[10px] font-bold text-slate-700 uppercase">Open</span>
+//     )}
+//   </div>
+// );
+
+// const HistoryItem = ({ item }) => (
+//   <div className="bg-slate-800/20 border border-slate-800/50 p-3 rounded-xl">
+//     <div className="flex justify-between items-center mb-1">
+//       <span className={`text-[8px] font-bold px-2 py-0.5 rounded ${item.Status === 'ENTERED' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
+//         {item.Status}
+//       </span>
+//       <span className="text-[8px] text-slate-500">{item['Entry Time']}</span>
+//     </div>
+//     <div className="flex justify-between text-xs font-bold text-slate-300">
+//       <span>{item['Plate Number']}</span>
+//       <span className="text-slate-500">Slot {item.Slot}</span>
+//     </div>
+//   </div>
+// );
+
+// export default App;
