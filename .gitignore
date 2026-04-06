@@ -9,3 +9,4 @@ __pycache__/
 *.pyc
 yolov8s.pt
 yolo26n.pt
+.env
