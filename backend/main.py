@@ -38,8 +38,8 @@ SHEET_NAME = "Sheet1"
 TOTAL_SLOTS = 20
 
 # Use raw strings for Windows paths to avoid escape character issues
-JSON_KEY_PATH = r"D:\SY_PBL\PBL-IOT-Based-Smart-Parking-System\backend\smartparkingsystem-492518-e640bcf2e250.json"
-WEIGHTS_PATH = r"D:\SY_PBL\PBL-IOT-Based-Smart-Parking-System\model\weights\best.pt"
+JSON_KEY_PATH = r"smartparkingsystem-492518-e640bcf2e250.json"
+WEIGHTS_PATH = r"..\model\weights\best.pt"
 
 SCOPE = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 CREDS = Credentials.from_service_account_file(JSON_KEY_PATH, scopes=SCOPE)
