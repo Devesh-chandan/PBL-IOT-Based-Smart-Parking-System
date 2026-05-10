@@ -465,7 +465,7 @@ bool initCamera() {
     // OV3660 specific image corrections
     sensor_t* s = esp_camera_sensor_get();
     s->set_vflip(s, 1);          // OV3660 image is vertically flipped by default
-    s->set_hmirror(s, 1);        // OV3660 image is horizontally mirrored by default
+    s->set_hmirror(s, 0);        // OV3660 image is horizontally mirrored by default
     s->set_brightness(s, 1);     // Slightly brighter for outdoor use
     s->set_contrast(s, 1);       // Higher contrast helps plate recognition
     s->set_saturation(s, 0);     // Neutral saturation
