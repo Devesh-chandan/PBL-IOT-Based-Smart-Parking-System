@@ -5,6 +5,7 @@ import numpy as np
 import easyocr
 import logging
 import time
+import math
 import gspread
 import google.auth.transport.requests
 from google.oauth2.service_account import Credentials
@@ -36,6 +37,7 @@ log = logging.getLogger(__name__)
 SHEET_ID = os.getenv("SHEET_ID", "12PyHepmlsAW-k39XXHcykDLnKOTwd5TcUBJZzFbWFTk")
 SHEET_NAME = "Sheet1"
 TOTAL_SLOTS = 20
+PARKING_RATE_PER_HOUR = 50  # ₹ per hour (car rate default)
 
 # Use raw strings for Windows paths to avoid escape character issues
 JSON_KEY_PATH = r"smartparkingsystem-492518-e640bcf2e250.json"
@@ -176,9 +178,39 @@ async def upload_image(request: Request):
     if matching_entry is not None:
         # --- EXIT LOGIC ---
         sheet_row = matching_entry + 2
+        matched_record = records[matching_entry]
+
+        # Read entry time and compute duration
+        entry_time_str = matched_record.get("Entry Time") or matched_record.get("Time") or "-"
+        slot = matched_record.get("Slot", "-")
+        duration_minutes = 0
+        try:
+            entry_dt = datetime.strptime(entry_time_str, "%Y-%m-%d %H:%M:%S")
+            exit_dt = datetime.strptime(now, "%Y-%m-%d %H:%M:%S")
+            duration_minutes = max(1, int((exit_dt - entry_dt).total_seconds() / 60))
+        except Exception:
+            pass
+
+        # Cost: round up to nearest hour, minimum 1 hour
+        billed_hours = max(1, math.ceil(duration_minutes / 60))
+        total_cost = billed_hours * PARKING_RATE_PER_HOUR
+
         sheets_update_cell(sheet_row, "C", "EXITED")
         sheets_update_cell(sheet_row, "E", now)
-        return {"status": "exit", "plate": plate_text}
+
+        log.info(f"EXIT: {plate_text} | Slot {slot} | {duration_minutes} min | ₹{total_cost}")
+
+        return {
+            "status": "exit",
+            "plate": plate_text,
+            "slot": str(slot),
+            "entryTime": entry_time_str,
+            "exitTime": now,
+            "durationMinutes": duration_minutes,
+            "billedHours": billed_hours,
+            "totalCost": total_cost,
+            "ratePerHour": PARKING_RATE_PER_HOUR,
+        }
     else:
         # --- ENTRY LOGIC ---
         slot = assign_slot(records)
